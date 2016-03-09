@@ -41,5 +41,6 @@ function getData(map){
                 }
             }).addTo(map);
         }
-    });
+    })
+  };
 $(document).ready(createMap);
