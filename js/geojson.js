@@ -1,5 +1,4 @@
 /* Map of GeoJSON data from 2015refugees.geojson */
-
 //function to instantiate the Leaflet map
 function createMap(){
     //create the map
