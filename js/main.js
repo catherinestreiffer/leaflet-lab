@@ -1,6 +1,7 @@
 /* Map of GeoJSON data from 2015refugees.geojson */
 //function to instantiate the Leaflet map
 var attributes = []
+var currentCountry = null
 
 function createMap(){
     //create the map
@@ -14,20 +15,20 @@ function createMap(){
     }).addTo(map);
     getData(map)
 };
-function createChoropleth {
+/*function createChoropleth {
     //making the geojson polygon layer accessible through this variable
     var geojson;
     //setting the colors for the ranges of refugee applications
     L.geoJson(data).addTo(map);(){function getColor(d) {
-          return  d > 1000 ? '#800026' :
-                  d > 500  ? '#BD0026' :
-                  d > 200  ? '#E31A1C' :
-                  d > 100  ? '#FC4E2A' :
-                  d > 50   ? '#FD8D3C' :
-                  d > 20   ? '#FEB24C' :
-                  d > 10   ? '#FED976' :
-                              '#FFEDA0';
+          return  d > 60000 ? '#253494' :
+                  d > 50000  ? '#2c7fb8' :
+                  d > 40000  ? '#41b6c4' :
+                  d > 30000 ? '#7fcdbb' :
+                  d > 20000   ? '#c7e9b4' :
+                  d > 10000  ? '#ffffcc' :
+                              '#FFEDA0'; //why is this here? do I need it?
     }
+  };
 //define a styling function for geojson layer so that its fillcolor depends
 //on the number of refugee applications for that month
   function style(feature) {
@@ -40,6 +41,7 @@ function createChoropleth {
         fillOpacity: 0.7
     };
   };
+};
   //get access to the layer that was hovered through e.target
   function highlightFeature(e) {
     var layer = e.target;
@@ -74,7 +76,7 @@ function createChoropleth {
         onEachFeature: onEachFeature
     }).addTo(map);
     geojson = L.geoJson(data, {style: style}).addTo(map);
-};
+};*/
 
 
     //calculate the radius of each proportional symbol
@@ -97,7 +99,7 @@ function pointToLayer(feature, latlng, attributes){
     console.log(attribute);
     //create marker options
     var options = {
-        fillColor: "#660033",
+        fillColor: "#41b6c4",
         color: "#000",
         weight: 1,
         opacity: 1,
@@ -109,12 +111,6 @@ function pointToLayer(feature, latlng, attributes){
     options.radius = calcPropRadius(attValue);
     //create circle marker layer
     var layer = L.circleMarker(latlng, options);
-    //original popupContent changed to panelContent...Example 2.2 line 1
-    var panelContent = "<p><b>Country:</b> " + feature.properties.Country + "</p>";
-    // create array to hold month names (plus year total)
-//    monthArray = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December", "Total for"];
-    //add formatted attribute to panel content string
-    panelContent += "<p><b>Refugee applications in</b>" + "<p><b>2015: </b>" + attValue;
 
     //popup content is now just the country name
     var popupContent = feature.properties.Country;
@@ -134,12 +130,37 @@ function pointToLayer(feature, latlng, attributes){
             this.closePopup();
         },
         click: function(){
-            $("#info").html(panelContent);
+          if (currentCountry == feature)
+            currentCountry = null;
+          else
+            currentCountry = feature;
+          updatePanelContent();
         }
     });
     //return the circle marker to the L.geoJson pointToLayer option
     return layer;
 };
+function updatePanelContent() {
+    //build html
+    var panelContent;
+
+
+    if (currentCountry) {
+      var attribute=attributes[$('.range-slider').val()];
+
+      panelContent = "<p><b>Country:</b> " + currentCountry.properties.Country + "</p>";
+      // create array to hold month names (plus year total)
+      //    monthArray = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December", "Total for"];
+      //add formatted attribute to panel content string
+      panelContent += "<p><b>Refugee applications in</b>" + "<p><b>2015: </b>" + Number(currentCountry.properties[attribute]);;
+    }
+    else {
+      panelContent = "<p><b>This is the intro panel information.</b>";
+    }
+    //set panel
+    $("#info").html(panelContent)
+};
+
 
 //Add circle markers for point features to the map
 function createPropSymbols(data, map){
@@ -161,7 +182,7 @@ function updatePropSymbols(map, attribute){
           var radius = calcPropRadius(props[attribute]);
           layer.setRadius(radius);
 
-          //add country to popup content string
+/*          //add country to popup content string
           var popupContent = "<p><b>Country:</b> " + props.Country + "</p>";
 
           //add formatted attribute to panel content string
@@ -171,7 +192,7 @@ function updatePropSymbols(map, attribute){
           //replace the layer popup
           layer.bindPopup(popupContent, {
              offset: new L.Point(0,-radius)
-          });
+          });*/
       };
     });
 };
@@ -200,11 +221,11 @@ $('#controls').append('<button class="skip" id="forward">Skip</button>');
       if ($(this).attr('id') == 'forward'){
           index++;
           //Step 7: if past the last attribute, wrap around to first attribute
-          index = index > 12 ? 0 : index;
+          index = index > 11 ? 0 : index;
       } else if ($(this).attr('id') == 'reverse'){
           index--;
           //Step 7: if past the first attribute, wrap around to last attribute
-          index = index < 0 ? 12 : index;
+          index = index < 0 ? 11 : index;
       };
 
       //Step 8: update slider
@@ -212,6 +233,7 @@ $('#controls').append('<button class="skip" id="forward">Skip</button>');
       //Called in both skip button and slider event listener handlers
       //Step 9: pass new attribute to update symbols
       updatePropSymbols(map, attributes[index]);
+      updatePanelContent();
   });
 
     //Step 5: input listener for slider
@@ -221,6 +243,7 @@ $('#controls').append('<button class="skip" id="forward">Skip</button>');
     //Called in both skip button and slider event listener handlers
     //Step 9: pass new attribute to update symbols
     updatePropSymbols(map, attributes[index]);
+    updatePanelContent();
     });
 };
 
@@ -257,6 +280,8 @@ function getData(map){
             createPropSymbols(response, map);
             //call function to create sequence controls
             createSequenceControls(map);
+
+            updatePanelContent();
         }
     });
 };
