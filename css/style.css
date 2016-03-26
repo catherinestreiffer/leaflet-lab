@@ -3,24 +3,24 @@
 }
 #map {
     height: 550px;
-    width: 60%;
+    width: 75%;
     display: inline-block;
 }
 
 #sidebar {
-    width: 22%;
-    padding: 20px;
+    width: 18%;
+    padding: 15px;
     display: inline-block;
     vertical-align: top;
-    text-align: center;
-    line-height: 42px;
+    text-align: left;
+    line-height: 18px;
 }
 .sequence-control-container {
-    width: 350px;
+    width: 275px;
     height: 30px;
     background-color: rgba(255,255,255,0.8);
     padding: 10px;
-    line-height: 45px;
+    line-height: 40px;
     text-align: center;
     border: solid gray 1px;
 }
@@ -41,11 +41,27 @@
 }
 
 .legend-control-container {
-    width: 200px;
-    height: 50px;
+    width: 210px;
+    height: 125px;
     background-color: rgba(255,255,255,0.8);
-    padding: 10px;
-    line-height: 45px;
+    padding: 15px;
+    padding-top: 5px;
+    line-height: 25px;
     text-align: center;
     border: solid gray 1px;
+}
+.circle-legend-region,.circle-legend-svg {
+  width:70px;
+}
+.circle-legend-region{
+  height:100px;
+  display:inline;
+  float: left
+  }
+.circle-legend-svg {
+  height:60px;
+}
+#choropleth-legend-image{
+  width: 200px;
+  height: 110px;
 }

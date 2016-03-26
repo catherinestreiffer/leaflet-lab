@@ -9,12 +9,13 @@ var polygonsDataSource = "data/SamuelIsAwesome.geojson";
 var pointsDataSource = "data/EuropeRefugees2015.geojson";
 // the layer control to toggle between the proportional symbols map and the choropleth map
 var layerControl = null;
+var layers = {}
 
 //function to instantiate the Leaflet map
 function createMaps() {
     //create the map
     var map = L.map('map', {
-        center: [52, 10],
+        center: [52, 5],
         zoom: 4
     });
     //add OSM base tilelayer
@@ -27,6 +28,7 @@ function createMaps() {
         //control widget instead of the overlay control widget
         baselayerchange: function() {
             updateMap(map);
+            updateLegendContent(map);
         }
     });
     //gets the data
@@ -36,7 +38,7 @@ function createTileLayer(map) {
   var mapboxAccessToken = "pk.eyJ1IjoiY2F0aGVyaW5lc3RyZWlmZmVyIiwiYSI6ImNpa3BrOTVlaTEyNmZ0aWo3eDlyaThraGMifQ.bYUxm5s4cRD2iRGqvpNNBA"
   L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=' + mapboxAccessToken, {
     id: 'mapbox.light',
-    attribution: '&copy; <a href="http://mapbox.com/">Mapbox</a>'
+    attribution: '&copy; <a href="http://mapbox.com/">Mapbox</a> icon: Invitro Estudio; data source: UNHCR'
 }).addTo(map);
 }
 //returns the current index value
@@ -65,6 +67,7 @@ function createPropsMap(data, map) {
     // tells the layer control which layer this is. Fools the layer control into thinking it is a base layer
     // so I can use the base layer widget instead of the overlay widget
     layerControl.addBaseLayer(layer, "Proportional Symbols")
+    layers ["Proportional Symbols"] = layer
 };
 
 //Resize proportional symbols according to new attribute values OR changes color on choropleth
@@ -91,11 +94,11 @@ function updateMap(map) {
 
 // here are the colors to use to classify the choropleth
 function calcColor(apps) {
-    return apps > 50000 ? '#253494' :
-        apps > 40000 ? '#2c7fb8' :
-        apps > 30000 ? '#41b6c4' :
-        apps > 20000 ? '#7fcdbb' :
-        apps > 10000 ? '#c7e9b4' :
+    return apps > 30000 ? '#253494' :
+        apps > 20000 ? '#2c7fb8' :
+        apps > 10000 ? '#41b6c4' :
+        apps > 5000 ? '#7fcdbb' :
+        apps > 1000 ? '#c7e9b4' :
         '#ffffcc';
 };
 
@@ -123,6 +126,7 @@ function createChoropleth(data, map) {
         // telling the layer control about the choropleth layer
         // fooling the layer control into thinking that it's a base layer to get the control widget I want
     layerControl.addBaseLayer(layer, "Choropleth")
+    layers ["Choropleth"] = layer
 };
 
 //calculate the radius of each proportional symbol
@@ -189,7 +193,7 @@ function defineLayerEvents(layer, feature, offset) {
 function updateAll(map) {
   updateMap(map);
   updatePanelContent();
-  updateLegendContent();
+  updateLegendContent(map);
 }
 // updates the panel content with the country selected, and the month and refugee apps for the month
 //selected from the slider
@@ -197,19 +201,27 @@ function updatePanelContent() {
     //build html
     var panelContent;
     if (currentCountry) {
-        panelContent = "<p><b>Country:</b> " + currentCountry.properties.Country + "</p>";
+        panelContent = "<p>Country:" + currentCountry.properties.Country + "</p>";
         // create array to hold month names (plus year total)
         monthArray = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         currentMonth = monthArray[currentAttributeIndex()];
         //add formatted attribute to panel content string
-        panelContent += "<p><b>Refugee applications in </b>" + currentMonth + "<p><b>2015: </b>" + currentNumberRefugees(currentCountry);
+        panelContent += "<p>Refugee applications in " + currentMonth + " 2015: " + currentNumberRefugees(currentCountry);
     }
     // if no country is selected, the panel content goes back to the general information
     else {
-        panelContent = "<p><b>In 2015, due mostly to escalation of the conflict in Syria, more than one million refugees arrived in Europe. Most were trying to get to Germany, since Germany was more welcome to the refugees than some of the other countries.</b>";
+        panelContent = "<p>European Refugee Crisis 2015</p>In 2015, due mostly to escalation of the conflict in Syria, more than one million refugees arrived in Europe. The majority of those refugees were Syrian, with most of the others coming from Afghanistan and Iraq. The majority of the refugees hoped to get to northern Europe, preferably Germany where they believed they would be most welcome. Many arrived in Greece by boat and then traveled through the western Balkans to Hungary. However, in October, Hungary closed its border with Croatia. The map shows the sharp decline in refugee applications in Hungary at that time. The number of refugees applications per month varied considerably per European country, with a number of countries having less than one hundred applications per month, to Germany, which never had less than 20,000 applications per month over 2015.</div>";
     }
     //set panel
     $("#info").html(panelContent)
+};
+function getLegendCircleValues(map) {
+  //return values as an object
+  return [
+    500,
+    5000,
+    50000,
+  ];
 };
 function createLegendContent(map) {
   var LegendControl = L.Control.extend({
@@ -219,22 +231,57 @@ function createLegendContent(map) {
       onAdd: function (map) {
           // create the control container with a particular class name
           var container = L.DomUtil.create('div', 'legend-control-container');
+          $(container).append('<div id="temporal-legend">')
+          $(container).append('<div id="circle-legend">')
+          $(container).append('<div id="choropleth-legend">')
+
+        //Step 1: loop to add each circle and text to svg string
+         for (var i=0; i<getLegendCircleValues(map).length; i++){
+            //circle string
+            $("#circle-legend",container).append('<div id=circle-legend-' + String(i+1) + " class=circle-legend-region>")
+            svg = "<svg class=circle-legend-svg>"
+            svg += '<circle class="legend-circle" id="circle-legend-circle-' + String(i+1) +
+            '" fill="#41b6c4" fill-opacity="0.8" stroke="#000000" cx="30"/>';
+            $("#circle-legend-" + String(i+1),container).append(svg)
+            $("#circle-legend-" + String(i+1),container).append('<div id=circle-legend-text-' + String(i+1) + ">")
+          };
+          $("#choropleth-legend", container).append('<object id="choropleth-legend-image" data = "img/Choropleth Legend.svg">')
           return container;
         }
     });
   map.addControl(new LegendControl());
 };
-function updateLegendContent() {
-  //build html
-  var legendContent;
+function updateLegendContent(map) {
   // create array to hold month names (plus year total)
-  monthArray = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  currentMonth = monthArray[currentAttributeIndex()];
+  var monthArray = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var currentMonth = monthArray[currentAttributeIndex()];
   //add formatted attribute to panel content string
-  legendContent = currentMonth + "<p><b> 2015</b>";
-  //set legend
-  $(".legend-control-container").html(legendContent)
-}
+  var temporalLegendContent = currentMonth + " 2015";
+  $("#temporal-legend").html(temporalLegendContent)
+
+  var circleValues = getLegendCircleValues(map);
+  for  (var i=0; i<circleValues.length; i++){
+    //get the radius
+    var radius = calcPropRadius(circleValues[i]);
+    //Step 3: assign the cy and r attributes
+    $('#circle-legend-circle-'+String(i+1)).attr({
+        cy: 60-radius,
+        r: radius
+    });
+    $('#circle-legend-text-'+String(i+1)).html("<p>" + String(circleValues[i]) + "</p>")
+  };
+  if (map.hasLayer(layers ["Proportional Symbols"]))
+    $('#circle-legend').show()
+  else
+    $('#circle-legend').hide()
+  if (map.hasLayer(layers ["Choropleth"]))
+    $('#choropleth-legend').show()
+  else
+    $('#choropleth-legend').hide()
+
+
+
+};
 
 //Create sequence controls
 function createSequenceControls(map) {
@@ -259,8 +306,8 @@ function createSequenceControls(map) {
     });
     //add skip buttons
     //replace button content with images
-  //  $('#reverse', container).html('<img src="img/reverse.png">');
-//    $('#forward', container).html('<img src="img/forward.png">');
+    $('#reverse', container).html('<img src="img/reverse.png" width=25px>');
+    $('#forward', container).html('<img src="img/forward.png" width=25px>');
     //click listener for skip buttons
     $('.skip',container).click(function() {
         //get index value
@@ -318,6 +365,7 @@ function processData(data) {
 
 //Import GeoJSON data
 function getData(map) {
+  createLegendContent(map);
     //load the data from the point geojson
     $.ajax(pointsDataSource, {
         dataType: "json",
@@ -326,8 +374,7 @@ function getData(map) {
             processData(response);
             //call function to create proportional symbols
             createPropsMap(response, map);
-
-
+            updateLegendContent(map);
         }
     });
     //load the data from the polygon geojson
@@ -343,8 +390,8 @@ function getData(map) {
     //call function to create panel content
     updatePanelContent();
     //call function to create temporal legend
-    createLegendContent(map);
-    updateLegendContent()
+
+
 };
 // create the map - this starts everything off
 $(document).ready(createMaps);
